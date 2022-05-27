@@ -9,7 +9,7 @@ Para comprimir y descomprimir archivos, se hace uso de una estructura de datos f
 
 En el momento actual, la aplicación trabaja con ficheros regulares, directorios y enlaces simbólicos.
 
-Para más información acerca de inserta_fichero y extrae_fichero mirar la especificación de cada uno de ellos.
+Para más información acerca de [inserta_fichero](../Documentos/) y [extrae_fichero](../Documentos/) mirar la especificación de cada uno de ellos.
 
-Desarrollado por Ian Fernandez e Iker Goñi.
-[I'm an inline-style link](https://www.google.com)
+Desarrollado por Ian Fernandez e [Iker Goñi](https://www.google.com).
+
