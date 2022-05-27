@@ -1,0 +1,156 @@
+man(ISO)                 Especificación de extrae_fichero                man(ISO)
+
+NOMBRE
+       extrae_fichero - extrae un fichero de otro fichero con formato mypackzip.
+	   
+SINOPSIS
+
+      #include "s_header.h"
+      
+      int extrae_fichero(char * f_mypackzip, int index);
+
+DESCRIPCIÓN
+      La función extrae_fichero extrae un fichero (o directorio) del fichero 
+      f_mypackzip. El fichero (o directorio) a extraer (nombre, datos,...) 
+      se corresponde con la información indicada en el registro s_header que
+      se encuentra en la posición index de f_mypackzip(ver s_header.h). 
+       
+      index debe ser un valor de 0 a NUM_HEADERS-1 donde NUM_HEADERS es en número 
+      máximo de ficheros/registros que pueda llegar a contener un fichero de tipo 
+      mypackzip.
+	  
+      Esta función debe extraer correctamente en función de elemento contenido en 
+      el s_header correspondiente a index: 
+      - Si lo que contine es un directorio, se debe crear el directorio indicado 
+        en el campo FileName.
+	- Si lo que contiene es un enlace simbólico, se debe crear el enlace simbólico
+	  con el nombre del campo FileName y su correspondiente ruta.
+      - Si lo que contine es un fichero regular:
+        Si el nombre del elemento (contenido en el s_header) es un fichero y 
+        contine una ruta(directorio), si la ruta no existe, debe crearla. 
+        Por ejemplo, si el nombre del archivo contenido en el s_header 
+        correspondiente a index, es dir1/fdatos.dat, y no existe el directorio dir/
+        debe crear el directorio dir/ y sobre ese directorio crear el archivo 
+        fdatos.dat
+
+	Cuando se extrae tanto un directorio como un fichero regular, se extraerán con
+	los permisos del archivo original guardados en Permissions.
+	  
+   
+VALOR DE RETORNO
+       Si todo funciona correctamente, extrae_fichero devolverá cero. En caso contrario 
+       no creará el fichero a extraer y retornará los errores indicados en el apartado de
+       ERRORES.
+
+ERRORES
+       E_OPEN   (1) 
+           No se puede abrir f_mypackzip.
+       E_POS    (2) 
+           Número de registro erróneo (index) .
+       E_DIR1   (3) 
+           No se puedecrear el directorio indicado en (index) .
+       E_DIR2   (4) 
+           No se puede abrir el directorio indicado en (index) .
+       E_DESCO  (99) 
+           Otro tipo de errores
+      
+NOTAS
+      Nota1: En caso de errores, el programa que utilice esta función , deberá informar por  
+             la salida estándar de errores un mensaje indicando el tipo de error.
+ 
+      Ejemplo de utilización:
+      Se supone que se utiliza compilación separada y el código (en lenguaje C) de la función
+      extrae_fichero se encuentra en un fichero diferente. 
+      En el ejemplo de uso, la función extrae el fichero que se encuentre en la posición 2 
+      el fichero "./ejemplo.mpz". 
+      "./ejemplo.mpz" deber ser un fichero con formato mypackzip.
+
+      #include "s_header.h" 
+      extern int extrae_fichero(char * file_mypackzip, unsigned int index);
+      ...
+      int ret;     
+      n = extrae_fichero("./ejemplo.mpz", 2);
+      if (n!=0) // Error
+      {
+          ....
+      }
+      ...
+   
+       El formato de fichero file_mypackzip se describe en la estructura  s_header 
+       
+/**
+* @file s_header.h
+* @author   G.A.
+* @date     28/02/2022
+* @brief    Include file with struct s_header, struct s_info and s_mypack_header
+* @details  A header file with the definition of struct s_header, struct s_info and 
+*           s_mypack_headers of  mypackzip file format
+*           +++++++++++++++++++++++
+*           + struct s_header 0   +
+*           +---------------------+
+*           + struct s_header 1   +
+*           +---------------------+
+*           +        ...          +
+*           +---------------------+
+*           + struct s_header n-1 +
+*           +++++++++++++++++++++++
+*           +    Data File 0      +
+*           +---------------------+
+*           +    Data File 1      +
+*           +---------------------+
+*           +        ...          +
+*           +---------------------+
+*           +    Data File n-1    +
+*           +++++++++++++++++++++++
+*
+*           n = NUM_HEADERS
+*/
+
+#define NUM_HEADERS     32
+#define S_HEADER_SIZE   512
+#define MAX_FILE_NAME   256
+#define BLOCK_SIZE      512
+
+struct s_Info {
+   char Type;                            // ='b'  (mypackzip file type) ('\' Empty data)
+   char Compress;                        // ='n' (default) o 'y'. 'y' if the file data is 
+                                         //       stored in compressed form
+   unsigned long DataSize;               // Original file size (uncompressed) 
+   unsigned long CompSize;               // Size of the compressed file. If the data is 
+                                         // not compressed, its value is the size of the 
+                                         // original file 
+   unsigned long NumBlocks;              // Number of blocks (of 512 bytes) occupied to save
+                                         // the file data in the packed file 
+   char DataFileName[MAX_FILE_NAME];     // Data file name  
+   unsigned long DatPosition;            // Position within mypackzip where the file data 
+                                         // is stored    
+   char FileType;                        // ='r'(regular file),   ='d'(directory),  
+                                         //   ='o'( other type)
+};
+
+#define S_INFO_SIZE sizeof(struct s_Info)
+
+#define DUMMY_SIZE (S_HEADER_SIZE - S_INFO_SIZE)
+
+struct  s_Header {
+   struct s_Info FileInfo;            // File Information
+   char Dummy[DUMMY_SIZE];            // ToDo...  
+};
+ 
+struct  s_mypack_headers {
+   struct  s_Header vHead[NUM_HEADERS];    // File Headers Vector 
+};
+
+#define S_vHead_SIZE sizeof(struct s_mypack_headers)
+
+
+COMPATIBILIDAD
+       extrae_fichero(...) debería funcionar en cualquier sistema UNIX.
+
+VEASE TAMBIEN
+       mypackzip(ISO), inserta_fichero(ISO).
+
+AUTOR
+       Nombre del autor(es).
+
+1.2                               28 Feb 2022                        man(ISO)

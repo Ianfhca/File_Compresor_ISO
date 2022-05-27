@@ -1,0 +1,177 @@
+man(ISO)                 Especificación de la función  inserta_fichero               man(ISO)
+
+NOMBRE
+       inserta_fichero - inserta un fichero en otro fichero con formato mypackzip
+       
+SINOPSIS
+      #include s_header.h
+      int inserta_fichero(char  f_mypackzip, char  f_dat, int index);
+
+DESCRIPCIÓN
+
+      Si  f_dat es de tipo fichero:
+ 
+      La función inserta_fichero inserta el fichero f_dat en el fichero f_mypackzip 
+      con formato mypackzip.
+      El registro (s_header) de la posición index se debe actualizar con la información de
+      f_dat. 
+      Si f_mypackzip no existe o está vacío, se debe crear el fichero f_mypackzip y 
+      se añadirá f_dat en la posición correpondiente a index
+      Si el registro (s_header) correspondiente ya estaba ocupado, la función no debe
+      modificar f_mypackzip y rettornará un códio de error (ver sección de errores).
+      
+      index debe ser un valor de 0 a NUM_HEADERS-1 donde NUM_HEADERS es en número máximo de 
+      ficherosregistros que pueda llegar a contener un fichero de tipo mypackzip.
+      El formato de f_mypackzip se describe en la estructura s_header (ver s_header.h). 
+      
+      Si  f_dat es de tipo Directorio:
+      
+      Debe introducir una entrada de tipo Directorio en la posición index indicada.
+      En los campos DataSize, CompSize, NumBlocks y DatPosition deben ser 0  ya que
+      no contendrá datos. En el campo FileName contendrá el valor de f_dat.
+      Seguido, la función debe introducir en f_mypackzip todos los fichero regulares 
+      contenidos en el directorio a partir del primer s_header libre del fichero f_mypackzip
+      Los nombres de los ficheros que se introduzcan tendrán el formato f_datxxx donde xxx
+      es el nombre de cada fichero regular encontrado.
+
+	Si  f_dat es de tipo Enlace Simbólico:
+	
+	Debe introducir el nombre del Enlace Simbólico en la posición indicada del s_header.
+	En el apartado de datos se almacenará la ruta absoluta del fichero al que hace
+	referencia el enlace simbólico.
+
+	Permisos:
+
+	Para los ficheros regulares y directorios, se almacenarán los permisos de f_dat en el
+	campo Permissions, de modo en que se mantenga la integridad de los datos insertados.
+	Si se intenta insertar un fichero del que no se tengan permisos, el mismo sistema 
+	operativo denegará la inserción.
+ 
+
+VALOR DE RETORNO
+       Si todo funciona correctamente, inserta_fichero devolverá el índice del 
+       s_header(posición) donde ha insertado f_dat (de 0 a NUM_HEADERS-1). 
+       En caso contrario no actualizará o creará el fichero f_mypackzip y la función 
+       retornará -1 junto con los errores indicados en el apartado de ERRORES.
+
+MEJORAS OPCIONALES
+       Si index es -1 f_dat se insertará en el primer s_header libre del archivo 
+       f_mypackzip y retornará el índice correspondiente al s_header donde se ha
+       insertado.
+
+ERRORES
+       E_OPEN1     (-1) 
+           f_dat hace referencia a un archivo y no se puede abrir.
+       E_OPEN2     (-2) 
+           No se puede abrir o crear f_mypackzip.
+       E_POS1      (-3) 
+           Número de index erroneo
+       E_POS2      (-4) 
+           index hace referencia a un s_header que ya contiene datos válidos.
+       E_OPENDIR1  (-5) 
+           f_dat hace referencia a un directorio y no se puede abrir.
+       E_DESCO     (-99) 
+           Otro tipo de errores 
+       
+NOTAS
+       Nota1 El programa que utilice esta función , deberá informar por la salida 
+              de error estándar un mensaje indicando el tipo de error.
+
+      Ejemplo de utilización
+      Se supone que se utiliza compilación separada y el código (en lenguaje C) de la función
+      inserta_fichero se encuentra en un fichero diferente. 
+      En el ejemplo de uso, la función inserta el fichero .fichero3.dat en la  posición 5 
+      del fichero .ejemplo.mpz. 
+      ejemplo.mpz deber ser un fichero con formato mypackzip.
+
+      #include s_header.h
+      extern int inserta_fichero(char  f_mypackzip, char  f_dat,  int index );
+      ...
+      unsigned int ret;
+      
+      n = inserta_fichero(.ejemplo.mpz, .fichero3.dat, 5);
+      if (n!=5)  Error
+      {
+          ....
+      }
+      ...
+       
+
+ @file s_header.h
+ @author   G.A.
+ @date     28022022
+ @brief    Include file with struct s_header, struct s_info and s_mypack_header
+ @details  A header file with the definition of struct s_header, struct s_info and 
+           s_mypack_headers of  mypackzip file format
+           +++++++++++++++++++++++
+           + struct s_header 0   +
+           +---------------------+
+           + struct s_header 1   +
+           +---------------------+
+           +        ...          +
+           +---------------------+
+           + struct s_header n-1 +
+           +++++++++++++++++++++++
+           +    Data File 0      +
+           +---------------------+
+           +    Data File 1      +
+           +---------------------+
+           +        ...          +
+           +---------------------+
+           +    Data File n-1    +
+           +++++++++++++++++++++++
+
+           n = NUM_HEADERS
+
+
+#define NUM_HEADERS     32
+#define S_HEADER_SIZE   512
+#define MAX_FILE_NAME   256
+#define BLOCK_SIZE      512
+
+
+struct s_Info {
+   char Type;                             ='b'  (mypackzip file type) ('' Empty data)
+   char Compress;                         ='n' (default) o 'y'. 'y' if the file data is 
+                                                stored in compressed form
+   unsigned long DataSize;                Original file size (uncompressed) 
+   unsigned long CompSize;                Size of the compressed file. If the data is 
+                                          not compressed, its value is the size of the 
+                                          original file 
+   unsigned long NumBlocks;               Number of blocks (of 512 bytes) occupied to save
+                                          the file data in the packed file 
+   char DataFileName[MAX_FILE_NAME];      Data file name  
+   unsigned long DatPosition;             Position within mypackzip where the file data 
+                                          is stored    
+   char FileType;                         ='r'(regular file),   ='d'(directory),  
+                                            ='o'( other type)
+};
+
+
+#define S_INFO_SIZE sizeof(struct s_Info)
+
+#define DUMMY_SIZE (S_HEADER_SIZE - S_INFO_SIZE)
+
+struct  s_Header {
+   struct s_Info FileInfo;             File Information
+   char Dummy[DUMMY_SIZE];             ToDo...  
+};
+ 
+struct  s_mypack_headers {
+   struct  s_Header vHead[NUM_HEADERS];     File Headers Vector 
+};
+
+#define S_vHead_SIZE sizeof(struct s_mypack_headers)
+
+	
+
+COMPATIBILIDAD
+       inserta_fichero() debería funcionar en cualquier sistema UNIX.
+
+VEASE TAMBIEN
+       mypackzip(ISO), extrae_fichero(ISO), i.
+
+AUTOR
+       Nombre del autor(es).
+
+1.2                               28 Feb 2022                        man(ISO)
