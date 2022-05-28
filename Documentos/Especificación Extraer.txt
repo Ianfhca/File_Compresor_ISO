@@ -126,6 +126,8 @@ struct s_Info {
                                          // is stored    
    char FileType;                        // ='r'(regular file),   ='d'(directory),  
                                          //   ='o'( other type)
+   mode_t Permissions;                   // Original file permissions (rwx)
+
 };
 
 #define S_INFO_SIZE sizeof(struct s_Info)
